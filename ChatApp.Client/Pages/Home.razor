@@ -1,0 +1,80 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.SignalR.Client
+@using ChatApp.Domain.Entities
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
+
+<PageTitle>Minimal Chat</PageTitle>
+
+<div class="chat-container">
+    <div class="user-info mb-3">
+        <input @bind="myUserId" placeholder="Your User ID" class="form-control d-inline w-25" />
+        <input @bind="targetUserId" placeholder="Chat with (Target ID)" class="form-control d-inline w-25" />
+        <button class="btn btn-primary" @onclick="Connect" disabled="@(isConnected)">Connect</button>
+    </div>
+
+    <div class="message-list border p-3 mb-3" style="height: 300px; overflow-y: scroll;">
+        @foreach (var msg in messages)
+        {
+            <div class="@(msg.SenderId == myUserId ? "text-end" : "text-start")">
+                <small>@msg.SenderId</small>
+                <p class="p-2 rounded bg-light d-inline-block">@msg.Content</p>
+            </div>
+        }
+    </div>
+
+    <div class="input-group">
+        <input @bind="messageInput" @oninput="NotifyTyping" class="form-control" placeholder="Type a message..." />
+        <button class="btn btn-success" @onclick="Send" disabled="@(!isConnected)">Send</button>
+    </div>
+</div>
+
+@code {
+    private HubConnection? hubConnection;
+    private List<ChatMessage> messages = new();
+    private string? myUserId;
+    private string? targetUserId;
+    private string? messageInput;
+
+    public bool isConnected => hubConnection?.State == HubConnectionState.Connected;
+
+    private async Task Connect()
+    {
+        var hubUrl = "http://localhost:5151/chathub?userId=" + myUserId;
+
+        // We pass the userId in the query string for our CustomUserIdProvider
+        hubConnection = new HubConnectionBuilder()
+        .WithUrl(hubUrl)
+        .WithAutomaticReconnect()
+        .Build();
+
+        // Listen for incoming messages
+        hubConnection.On<string, string, DateTime>("ReceiveMessage", (sender, message, timestamp) =>
+        {
+            messages.Add(new ChatMessage(sender, myUserId!, message));
+            InvokeAsync(StateHasChanged);
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+    private async Task Send()
+    {
+        if (hubConnection is not null && !string.IsNullOrEmpty(messageInput))
+        {
+            await hubConnection.SendAsync("SendPrivateMessage", targetUserId, messageInput);
+            messageInput = string.Empty;
+        }
+    }
+
+    private async Task NotifyTyping() =>
+        await hubConnection!.SendAsync("NotifyTyping", targetUserId);
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+}
