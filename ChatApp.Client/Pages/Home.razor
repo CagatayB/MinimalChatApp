@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using ChatApp.Domain.Entities
 @inject NavigationManager Navigation
+@inject HttpClient Http
 @implements IAsyncDisposable
 
 <PageTitle>Minimal Chat</PageTitle>
@@ -40,6 +41,13 @@
 
     private async Task Connect()
     {
+        var history = await Http.GetFromJsonAsync<List<ChatMessage>>($"http://localhost:5151/api/messages/{myUserId}/{targetUserId}");
+
+        if (history is not null)
+        {
+            messages = history;
+        }
+
         var hubUrl = "http://localhost:5151/chathub?userId=" + myUserId;
 
         // We pass the userId in the query string for our CustomUserIdProvider

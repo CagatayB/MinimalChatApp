@@ -37,16 +37,18 @@ app.UseCors("SignalRCors");
 app.MapHub<ChatHub>("/chathub");
 
 // 5. Minimal API Endpoint: Get Chat History
-app.MapGet("/api/messages/{userId}", async (string userId, ChatDbContext db) =>
+app.MapGet("/api/messages/{userId}/{contactId}", async (string userId, string contactId, ChatDbContext db) =>
 {
-    var messages = await db.Messages
-        .Where(m => m.SenderId == userId || m.ReceiverId == userId)
+    var history = await db.Messages
+        .Where(m => (m.SenderId == userId && m.ReceiverId == contactId) ||
+                    (m.SenderId == contactId && m.ReceiverId == userId))
         .OrderBy(m => m.SentAt)
         .Take(50)
         .ToListAsync();
 
-    return Results.Ok(messages);
+    return Results.Ok(history);
 });
+
 
 // Ensure database is created
 using (var scope = app.Services.CreateScope())
