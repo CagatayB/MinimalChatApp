@@ -1,22 +1,32 @@
 ﻿using ChatApp.Application.NewFolder;
+using ChatApp.Application.Services;
 using ChatApp.Domain.Entities;
 using ChatApp.Infrastructure.Persistence;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
 namespace ChatApp.API.Hubs
 {
     public class ChatHub : Hub<IChatClient>
     {
         private readonly ChatDbContext _context;
+        private readonly ChatValidationService _validator;
 
-        public ChatHub(ChatDbContext context)
+        public ChatHub(ChatDbContext context, ChatValidationService validator)
         {
             _context = context;
+            _validator = validator;
         }
 
         public async Task SendPrivateMessage(string receiverId, string message)
         {
+            if (!_validator.IsValidMessage(message))
+            {
+                await Clients.Caller.ReceiveError("Message cannot be empty and must be under 500 characters.");
+                return;
+            }
+
             // Context.UserIdentifier is now automatically the User ID from the JWT
             var senderId = Context.UserIdentifier!;
 

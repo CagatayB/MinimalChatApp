@@ -9,5 +9,6 @@ namespace ChatApp.Application.NewFolder
         Task ReceiveMessage(string senderId, string message, DateTime timestamp);
         Task UserTyping(string userId);
         Task UpdateOnlineStatus(string userId, bool isOnline);
+        Task ReceiveError(string errorMessage);
     }
 }
