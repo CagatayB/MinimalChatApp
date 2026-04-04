@@ -50,6 +50,8 @@
 
     private async Task Connect()
     {
+        // token from Login endpoint
+        var token = "ThisIsASecretKeyForJwtToken";
         var history = await Http.GetFromJsonAsync<List<ChatMessage>>($"http://localhost:5151/api/messages/{myUserId}/{targetUserId}");
 
         if (history is not null)
@@ -61,7 +63,10 @@
 
         // We pass the userId in the query string for our CustomUserIdProvider
         hubConnection = new HubConnectionBuilder()
-        .WithUrl(hubUrl)
+        .WithUrl(hubUrl, options =>
+        {
+            options.AccessTokenProvider = () => Task.FromResult(token);
+        })
         .WithAutomaticReconnect()
         .Build();
 

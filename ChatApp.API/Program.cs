@@ -2,9 +2,11 @@ using ChatApp.API;
 using ChatApp.API.Hubs;
 using ChatApp.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -45,7 +47,7 @@ builder.Services.AddAuthentication(options => {
 
 builder.Services.AddAuthorization();
 
-// 1. Register Database (using SQLite for easy portfolio cloning)
+// Register Database (using SQLite for easy portfolio cloning)
 builder.Services.AddDbContext<ChatDbContext>(options =>
     options.UseSqlite("Data Source=chat.db"));
 
@@ -54,29 +56,29 @@ builder.Services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
 
 
 
-// 2. Add CORS (Crucial for Frontend-Backend communication)
+// Add CORS (Crucial for Frontend-Backend communication)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("SignalRCors", policy =>
     {
-        policy.WithOrigins("http://localhost:5097") // Your Blazor URL
+        policy.WithOrigins("http://localhost:5097") // Blazor URL
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials(); // Required for SignalR
+              .AllowCredentials();
     });
 });
 
-// 3. Register SignalR
+// Register SignalR
 builder.Services.AddSignalR();
 
 var app = builder.Build();
 
 app.UseCors("SignalRCors");
 
-// 4. Map the SignalR Hub
+// Map the SignalR Hub
 app.MapHub<ChatHub>("/chathub");
 
-// 5. Minimal API Endpoint: Get Chat History
+// Minimal API Endpoint: Get Chat History
 app.MapGet("/api/messages/{userId}/{contactId}", async (string userId, string contactId, ChatDbContext db) =>
 {
     var history = await db.Messages
@@ -87,6 +89,21 @@ app.MapGet("/api/messages/{userId}/{contactId}", async (string userId, string co
         .ToListAsync();
 
     return Results.Ok(history);
+});
+
+// Minimal API Endpoint: Login (for demo purposes, no password, just username)
+app.MapPost("/api/auth/login", (string username) => {
+    var tokenHandler = new JwtSecurityTokenHandler();
+    var tokenDescriptor = new SecurityTokenDescriptor
+    {
+        Subject = new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, username) }),
+        Expires = DateTime.UtcNow.AddDays(7),
+        Issuer = jwtSettings["Issuer"],
+        Audience = jwtSettings["Audience"],
+        SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+    };
+    var token = tokenHandler.CreateToken(tokenDescriptor);
+    return Results.Ok(new { Token = tokenHandler.WriteToken(token) });
 });
 
 
