@@ -17,7 +17,8 @@ namespace ChatApp.API.Hubs
 
         public async Task SendPrivateMessage(string receiverId, string message)
         {
-            var senderId = Context.UserIdentifier ?? "Anonymous"; // In prod, this comes from JWT authentication
+            // Context.UserIdentifier is now automatically the User ID from the JWT
+            var senderId = Context.UserIdentifier!;
 
             // 1. Create the Domain Entity
             var chatMessage = new ChatMessage(senderId, receiverId, message);
