@@ -47,7 +47,7 @@ Open two browser tabs. Connect as "UserA" in one and "UserB" in the other to sta
 The project is configured with a strict CORS policy to allow secure credential sharing between the Blazor WASM origin and the SignalR backend, preventing unauthorized cross-site access.
 
 ## Future Improvements
-- [ ] Identity & JWT: Secure connections with Bearer Tokens.
+- [x] Identity & JWT: Secure connections with Bearer Tokens.
 - [ ] Redis Backplane: Scale the SignalR hub across multiple server instances.
 - [ ] File Sharing: Allow users to send images/attachments over SignalR.
 - [ ] Unit Testing: Implement XUnit tests for the Application and Hub logic.
