@@ -1,4 +1,4 @@
-﻿using ChatApp.Application.NewFolder;
+﻿using ChatApp.Application.Interfaces;
 using ChatApp.Application.Services;
 using ChatApp.Domain.Entities;
 using ChatApp.Infrastructure.Persistence;
@@ -11,9 +11,9 @@ namespace ChatApp.API.Hubs
     public class ChatHub : Hub<IChatClient>
     {
         private readonly ChatDbContext _context;
-        private readonly ChatValidationService _validator;
+        private readonly IChatValidationService _validator;
 
-        public ChatHub(ChatDbContext context, ChatValidationService validator)
+        public ChatHub(ChatDbContext context, IChatValidationService validator)
         {
             _context = context;
             _validator = validator;
@@ -29,6 +29,7 @@ namespace ChatApp.API.Hubs
 
             // Context.UserIdentifier is now automatically the User ID from the JWT
             var senderId = Context.UserIdentifier!;
+            if (string.IsNullOrEmpty(senderId)) return;
 
             // 1. Create the Domain Entity
             var chatMessage = new ChatMessage(senderId, receiverId, message);

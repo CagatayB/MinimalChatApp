@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ChatApp.Application.NewFolder
+namespace ChatApp.Application.Interfaces
 {
     public interface IChatClient
     {

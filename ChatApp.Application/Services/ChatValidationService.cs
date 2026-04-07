@@ -4,7 +4,12 @@ using System.Text;
 
 namespace ChatApp.Application.Services
 {
-    public class ChatValidationService
+    public interface IChatValidationService
+    {
+        bool IsValidMessage(string content);
+    }
+
+    public class ChatValidationService : IChatValidationService
     {
         public bool IsValidMessage(string content)
         {
