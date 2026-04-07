@@ -50,4 +50,4 @@ The project is configured with a strict CORS policy to allow secure credential s
 - [x] Identity & JWT: Secure connections with Bearer Tokens.
 - [ ] Redis Backplane: Scale the SignalR hub across multiple server instances.
 - [ ] File Sharing: Allow users to send images/attachments over SignalR.
-- [ ] Unit Testing: Implement XUnit tests for the Application and Hub logic.
+- [x] Unit Testing: Implement XUnit tests for the Application and Hub logic.
