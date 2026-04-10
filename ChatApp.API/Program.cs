@@ -1,9 +1,8 @@
-using ChatApp.API;
 using ChatApp.API.Hubs;
 using ChatApp.Application.Services;
+using ChatApp.Domain.Entities;
 using ChatApp.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -12,15 +11,13 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// --- Configuration & JWT Setup ---
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);
 
-builder.Services.AddAuthentication(options => {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-    .AddJwtBearer(options => {         
-        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options => {
+        options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidateAudience = true,
@@ -28,14 +25,14 @@ builder.Services.AddAuthentication(options => {
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtSettings["Issuer"],
             ValidAudience = jwtSettings["Audience"],
-            IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(key)
+            IssuerSigningKey = new SymmetricSecurityKey(key)
         };
+
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>
             {
                 var accessToken = context.Request.Query["access_token"];
-                // If the request is for our SignalR hub
                 var path = context.HttpContext.Request.Path;
                 if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chathub"))
                 {
@@ -48,63 +45,59 @@ builder.Services.AddAuthentication(options => {
 
 builder.Services.AddAuthorization();
 
-
+// --- Database & Infrastructure ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                       ?? "Data Source=chat.db";
 
 builder.Services.AddDbContext<ChatDbContext>(options =>
     options.UseSqlite(connectionString));
 
-builder.Services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
 
+builder.Services.AddScoped<IChatValidationService, ChatValidationService>();
 
+// --- Real-time & Middleware ---
+builder.Services.AddSignalR();
 
-// Add CORS (Crucial for Frontend-Backend communication)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("SignalRCors", policy =>
     {
-        policy.WithOrigins("http://localhost:5097") // Blazor URL
+        policy.WithOrigins("http://localhost:5097")
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
     });
 });
 
-builder.Services.AddScoped<IChatValidationService, ChatValidationService>();
-
-// Register SignalR
-builder.Services.AddSignalR();
-
 var app = builder.Build();
 
 app.UseCors("SignalRCors");
-
 app.UseAuthentication();
-app.UseAuthorization(); 
+app.UseAuthorization();
 
-// Map the SignalR Hub
 app.MapHub<ChatHub>("/chathub");
 
-// Minimal API Endpoint: Get Chat History
+// --- Minimal API Endpoints ---
+
+// Get Chat History
 app.MapGet("/api/messages/{userId}/{contactId}", async (string userId, string contactId, ChatDbContext db) =>
 {
-    var history = await db.Messages
+    return await db.Messages
         .Where(m => (m.SenderId == userId && m.ReceiverId == contactId) ||
                     (m.SenderId == contactId && m.ReceiverId == userId))
         .OrderBy(m => m.SentAt)
         .Take(50)
-        .ToListAsync();
-
-    return Results.Ok(history);
+        .ToListAsync() is List<ChatMessage> history
+            ? Results.Ok(history)
+            : Results.NotFound();
 });
 
-// Minimal API Endpoint: Login (for demo purposes, no password, just username)
-app.MapPost("/api/auth/login", (string username) => {
+// Login
+app.MapPost("/api/auth/login", (LoginRequest request) => {
     var tokenHandler = new JwtSecurityTokenHandler();
     var tokenDescriptor = new SecurityTokenDescriptor
     {
-        Subject = new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, username) }),
+        Subject = new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, request.Username) }),
         Expires = DateTime.UtcNow.AddDays(7),
         Issuer = jwtSettings["Issuer"],
         Audience = jwtSettings["Audience"],
@@ -114,14 +107,14 @@ app.MapPost("/api/auth/login", (string username) => {
     return Results.Ok(new { Token = tokenHandler.WriteToken(token) });
 });
 
-
-// Ensure database is created
+// Database Initialization
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ChatDbContext>();
     db.Database.EnsureCreated();
 }
 
-
 app.Run();
 
+// DTO for clean login
+public record LoginRequest(string Username);
