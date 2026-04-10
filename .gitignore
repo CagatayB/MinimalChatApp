@@ -4,11 +4,26 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 # User-specific files
+bin/
+obj/
 *.rsuser
 *.suo
 *.user
 *.userosscache
 *.sln.docstates
+
+# [SQLite Database Files]
+database-data/
+# Exclude any loose SQLite files in the project folders
+*.db
+*.db-shm
+*.db-wal
+
+# [Docker]
+.docker-compose.override.yml
+
+.env
+appsettings.Development.json
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
