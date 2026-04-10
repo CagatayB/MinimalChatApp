@@ -10,10 +10,10 @@ A real-time, private messaging application built with ASP.NET Core SignalR and B
 - Minimal API: High-performance, lightweight backend endpoints.
 
 ## 🏗️ Tech Stack
-- Backend: .NET 10, ASP.NET Core SignalR, Minimal APIs.
-- Frontend: Blazor WebAssembly (WASM).
+- Backend: .NET 10, SignalR, Minimal APIs, Docker.
+- Frontend: Blazor WebAssembly.
 - Database: Entity Framework Core (SQLite).
-- Architecture: Onion/Clean Architecture.
+- Architecture: Clean Architecture.
 
 ## Project Structure
 - ChatApp.Domain: Contains core entities (e.g., ChatMessage) and domain logic. No dependencies.
@@ -30,9 +30,9 @@ git clone https://github.com/yourusername/MinimalChatApp.git
 cd ChatApp
 ```
 
-2. Run the API: <br/>
+2. Quick Start (Docker)
 ```
-dotnet run --project src/ChatApp.API 
+docker-compose up -d --build 
 ```
  
 3. Run the Blazor Client: <br/>
@@ -46,8 +46,11 @@ Open two browser tabs. Connect as "UserA" in one and "UserB" in the other to sta
 ### CORS & Security
 The project is configured with a strict CORS policy to allow secure credential sharing between the Blazor WASM origin and the SignalR backend, preventing unauthorized cross-site access.
 
-## Future Improvements
+## Improvements
+- [x] Backend: .NET 10 Clean Architecture.
+- [x] Real-time: SignalR with Typed Hubs and Typing Indicators.
 - [x] Identity & JWT: Secure connections with Bearer Tokens.
+- [x] Persistence: SQLite with Docker Volumes.
 - [ ] Redis Backplane: Scale the SignalR hub across multiple server instances.
 - [ ] File Sharing: Allow users to send images/attachments over SignalR.
 - [x] Unit Testing: Implement XUnit tests for the Application and Hub logic.
