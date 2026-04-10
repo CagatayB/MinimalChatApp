@@ -1,5 +1,6 @@
 using ChatApp.API;
 using ChatApp.API.Hubs;
+using ChatApp.Application.Services;
 using ChatApp.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.SignalR;
@@ -47,10 +48,12 @@ builder.Services.AddAuthentication(options => {
 
 builder.Services.AddAuthorization();
 
-// Register Database (using SQLite for easy portfolio cloning)
-builder.Services.AddDbContext<ChatDbContext>(options =>
-    options.UseSqlite("Data Source=chat.db"));
 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+                      ?? "Data Source=chat.db";
+
+builder.Services.AddDbContext<ChatDbContext>(options =>
+    options.UseSqlite(connectionString));
 
 builder.Services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
 
@@ -68,12 +71,17 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddScoped<IChatValidationService, ChatValidationService>();
+
 // Register SignalR
 builder.Services.AddSignalR();
 
 var app = builder.Build();
 
 app.UseCors("SignalRCors");
+
+app.UseAuthentication();
+app.UseAuthorization(); 
 
 // Map the SignalR Hub
 app.MapHub<ChatHub>("/chathub");

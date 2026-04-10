@@ -1,0 +1,17 @@
+services:
+  backend:
+    image: chatapp-api
+    build:
+      context: .
+      dockerfile: ChatApp.API/Dockerfile
+    container_name: chatapp-backend
+    ports:
+      - "5151:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+    volumes:
+      # This maps the internal SQLite folder to a folder on machine
+      # This ensures chat history isn't deleted when the container stops
+      - ./ChatApp.API/database-data:/app/data
+    restart: always
